@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: kk-sse-credit-cards
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: JAVA_OPTS
+        value: "-Xmx512m -Xms256m"
+    healthCheckPath: /api/cards
+    
+    # Auto-deploy when main branch is updated
+    autoDeploy: true
+    
+    # Environment variables can be added in Render dashboard
+    # or specified here for non-sensitive values 
