@@ -21,19 +21,24 @@ public class McpCardService {
     private CardService cardService;
 
     /**
-     * MCP Tool: Get all credit cards
+     * MCP Tool: Get all credit cards from Check24 API
      */
     @Tool(name = "getCards", description = "Get a list of all available credit cards with their details")
     public List<Card> getCards() {
-        return cardService.findAll();
+        return cardService.fetchCardsFromCheck24Api();
     }
 
     /**
-     * MCP Tool: Get a single credit card by ID
+     * MCP Tool: Get a single credit card by ID from Check24 API
      */
     @Tool(name = "getCard", description = "Get details for a single credit card by its ID")
     public Card getCard(@ToolParam(description = "The unique ID of the credit card to retrieve") Long id) {
-        return cardService.getById(id);
+        // Get from Check24 API only
+        List<Card> apiCards = cardService.fetchCardsFromCheck24Api();
+        return apiCards.stream()
+                .filter(card -> card.getId().equals(id))
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -94,22 +99,22 @@ public class McpCardService {
     }
 
     /**
-     * MCP Tool: Get simplified card information showing only names and bonuses
+     * MCP Tool: Get simplified card information showing only names and bonuses from Check24 API
      * This is a new capability that doesn't exist in the legacy API
      */
     @Tool(name = "getBonuses", description = "Get a simplified list showing only card names and their signup bonuses")
     public List<Map<String, String>> getBonuses() {
-        List<Card> allCards = getCards();
+        List<Card> apiCards = cardService.fetchCardsFromCheck24Api();
         
-        if (allCards == null) {
+        if (apiCards == null) {
             return List.of();
         }
         
-        return allCards.stream()
+        return apiCards.stream()
                 .map(card -> {
                     Map<String, String> cardBonus = new HashMap<>();
                     cardBonus.put("cardName", card.getCardName());
-                    cardBonus.put("bonus", card.getBonus());
+                    cardBonus.put("bonus", card.getSignupBonus());
                     return cardBonus;
                 })
                 .collect(Collectors.toList());
