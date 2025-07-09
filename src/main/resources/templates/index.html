@@ -1,374 +1,587 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KK Credit Card - Live Updates</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <title>KK Credit Cards - AI Customer Service Agent</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .card-hover {
-            transition: transform 0.2s ease-in-out;
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f8f9fa;
         }
-        .card-hover:hover {
-            transform: translateY(-5px);
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            text-align: center;
         }
-        .status-indicator {
-            height: 10px;
-            width: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
+        
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background-color: white;
+            margin: 0 1rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .status-connected {
-            background-color: #28a745;
-            animation: pulse 2s infinite;
+        
+        .chat-bubble {
+            margin-bottom: 1rem;
+            display: flex;
+            animation: fadeIn 0.3s ease-in;
         }
-        .status-disconnected {
-            background-color: #dc3545;
-        }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        .update-badge {
-            animation: fadeIn 0.5s ease-in-out;
-        }
+        
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .sse-log {
-            max-height: 300px;
+        
+        .user-message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 18px 18px 5px 18px;
+            padding: 12px 16px;
+            max-width: 80%;
+            margin-left: auto;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .agent-message {
+            background-color: #f1f3f4;
+            border-radius: 18px 18px 18px 5px;
+            padding: 12px 16px;
+            max-width: 80%;
+            margin-right: auto;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background-color: #f1f3f4;
+            border-radius: 18px;
+            max-width: 80px;
+            margin-right: auto;
+            margin-bottom: 1rem;
+        }
+        
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #999;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+        
+        .sidebar {
+            background-color: white;
+            border-radius: 10px;
+            margin: 1rem;
+            padding: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-height: calc(100vh - 140px);
             overflow-y: auto;
+        }
+        
+        .demo-scenario {
             background-color: #f8f9fa;
             border: 1px solid #dee2e6;
-            border-radius: 0.375rem;
-            padding: 1rem;
-            font-family: 'Courier New', monospace;
-            font-size: 0.875rem;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        .live-data {
-            border-left: 4px solid #007bff;
+        
+        .demo-scenario:hover {
+            background-color: #e9ecef;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .input-container {
+            padding: 1rem;
+            background-color: white;
+            margin: 0 1rem 1rem 1rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .server-status {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
             background-color: #f8f9fa;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-healthy { background-color: #28a745; }
+        .status-unhealthy { background-color: #dc3545; }
+        
+        .tool-item {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 8px;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .session-info {
+            background-color: #e3f2fd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+        }
+        
+        .btn-clear {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        
+        .welcome-message {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            margin: 2rem 0;
+        }
+        .log-think { color: #007bff; font-weight: bold; }
+        .log-action { color: #28a745; font-weight: bold; }
+        .log-result { color: #6c757d; }
+        .log-error { color: #dc3545; font-weight: bold; }
+        .log-user { color: #764ba2; font-weight: bold; }
+        .applications-panel {
+            background-color: white;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-height: 250px; /* Or adjust as needed */
+            overflow-y: auto;
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid py-4">
-        <div class="row">
-            <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h1 class="display-4 text-primary">
-                        <i class="fas fa-credit-card me-3"></i>
-                        KK Credit Cards - Live Updates
-                    </h1>
-                    <div class="d-flex align-items-center">
-                        <span class="status-indicator" id="connectionStatus"></span>
-                        <span id="connectionText">Connecting...</span>
-                    </div>
+
+<div class="header">
+    <h1><i class="fas fa-credit-card"></i> KK Credit Cards</h1>
+    <p class="mb-0">AI-Powered Customer Service Agent Demo</p>
+</div>
+
+<div class="container-fluid flex-fill d-flex">
+    <div class="row flex-fill w-100">
+        <!-- Sidebar -->
+        <div class="col-md-3">
+            <div class="sidebar">
+                <!-- Session Info -->
+                <div class="session-info">
+                    <strong>Session:</strong> <span id="session-id">New Session</span><br>
+                    <strong>Messages:</strong> <span id="message-count">0</span><br>
+                    <strong>Agent Mode:</strong> <span id="agent-mode" class="badge bg-success">Iterative Agent</span>
+                </div>
+                
+                <!-- Agent Mode Selection - REMOVED -->
+                
+                <hr>
+                
+                <!-- Demo Scenarios -->
+                <h5><i class="fas fa-play-circle"></i> Demo Scenarios</h5>
+                <div id="demo-scenarios">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                
+                <hr>
+                
+                <!-- Server Status -->
+                <h6><i class="fas fa-server"></i> Server Status</h6>
+                <div id="servers-panel">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                
+                <hr>
+                
+                <!-- Available Tools -->
+                <h6><i class="fas fa-tools"></i> Available Tools</h6>
+                <div id="tools-panel">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                
+                <hr>
+                
+                <!-- Controls -->
+                <div class="d-grid gap-2">
+                    <button class="btn btn-clear btn-sm" id="clear-chat">
+                        <i class="fas fa-trash"></i> Clear Chat
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" id="new-session">
+                        <i class="fas fa-plus"></i> New Session
+                    </button>
                 </div>
             </div>
         </div>
+        
+        <!-- Chat Area -->
+        <div class="col-md-9 d-flex flex-column">
+            <!-- Applications Panel -->
+            <div class="applications-panel mb-3">
+                <h6 class="text-muted"><i class="fas fa-folder-open"></i> Existing Demo Applications</h6>
+                <div class="table-responsive" id="applications-container">
+                    <!-- Table will be populated by JavaScript -->
+                </div>
+            </div>
 
-        <!-- SSE Status Cards -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card border-primary">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">
-                            <i class="fas fa-stream me-2"></i>
-                            Card Updates Stream
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="card-text">Real-time interest rate updates every 30 seconds</p>
-                        <small class="text-muted">Last update: <span id="cardUpdateTime">Never</span></small>
-                    </div>
+            <div class="chat-container" id="chat-window">
+                <div class="welcome-message">
+                    <i class="fas fa-robot fa-2x mb-2"></i>
+                    <p>Welcome! I'm Emma, your AI customer service agent for KK Credit Cards.</p>
+                    <p>Try one of the demo scenarios on the left, or just start typing!</p>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card border-success">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0">
-                            <i class="fas fa-file-contract me-2"></i>
-                            Application Processing
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="card-text">Live application status updates</p>
-                        <small class="text-muted">
-                            Active Applications: <span id="activeApplications" class="badge bg-success">0</span>
-                        </small>
-                    </div>
+            
+            <div class="input-container">
+                <div class="input-group">
+                    <input type="text" id="chat-input" class="form-control" 
+                           placeholder="Type your message... (e.g., 'I'm Jane Smith' or 'Which card has the best bonus?')">
+                    <button class="btn btn-primary" id="send-button">
+                        <i class="fas fa-paper-plane"></i> Send
+                    </button>
                 </div>
             </div>
-        </div>
-
-        <!-- Credit Cards Display -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <h2 class="mb-3">
-                    <i class="fas fa-credit-card me-2"></i>
-                    Available Credit Cards
-                    <span class="badge bg-info ms-2" id="updateBadge" style="display: none;">Updated!</span>
-                </h2>
-                <div class="row" id="cardsContainer">
-                    <!-- Cards will be populated here by JavaScript -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Application Form -->
-        <div class="row mb-4">
-            <div class="col-lg-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="mb-0">
-                            <i class="fas fa-user-plus me-2"></i>
-                            Apply for a Credit Card
-                        </h3>
-                    </div>
-                    <div class="card-body">
-                        <form id="applicationForm">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="firstName" class="form-label">First Name</label>
-                                    <input type="text" class="form-control" id="firstName" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="lastName" class="form-label">Last Name</label>
-                                    <input type="text" class="form-control" id="lastName" required>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="salary" class="form-label">Annual Salary ($)</label>
-                                    <input type="number" class="form-control" id="salary" min="1" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="birthday" class="form-label">Date of Birth</label>
-                                    <input type="date" class="form-control" id="birthday" required>
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-paper-plane me-2"></i>
-                                Submit Application
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="mb-0">
-                            <i class="fas fa-bell me-2"></i>
-                            Live Updates Log
-                        </h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="sse-log" id="sseLog">
-                            <div class="text-muted">Connecting to live update streams...</div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Agent Reasoning Log (moved below chat) -->
+            <div class="mt-3">
+                <h6><i class="fas fa-scroll"></i> Agent Reasoning Log</h6>
+                <div id="agent-log-panel" style="background:#222;color:#eee;font-family:monospace;font-size:0.95em;max-height:250px;overflow-y:auto;padding:12px;border-radius:7px;"></div>
+                <button class="btn btn-outline-secondary btn-sm mt-2" id="refresh-agent-log"><i class="fas fa-sync"></i> Refresh Log</button>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // SSE connections
-        let cardEventSource = null;
-        let applicationEventSource = null;
-        let cardsData = [];
+<script>
+    let currentSessionId = null;
+    let messageCount = 0;
+    
+    document.addEventListener("DOMContentLoaded", () => {
+        const chatWindow = document.getElementById("chat-window");
+        const chatInput = document.getElementById("chat-input");
+        const sendButton = document.getElementById("send-button");
+        const serversPanel = document.getElementById("servers-panel");
+        const toolsPanel = document.getElementById("tools-panel");
+        const demoScenariosPanel = document.getElementById("demo-scenarios");
+        const sessionIdSpan = document.getElementById("session-id");
+        const messageCountSpan = document.getElementById("message-count");
+        const agentModeSpan = document.getElementById("agent-mode");
+        const clearChatBtn = document.getElementById("clear-chat");
+        const newSessionBtn = document.getElementById("new-session");
+        const applicationsContainer = document.getElementById("applications-container");
 
-        // Initialize SSE connections
-        function initializeSSE() {
-            // Card updates stream
-            cardEventSource = new EventSource('/api/cards/stream');
-            
-            cardEventSource.addEventListener('initial-cards', function(event) {
-                cardsData = JSON.parse(event.data);
-                displayCards(cardsData);
-                updateConnectionStatus(true);
-                logMessage('Initial cards loaded', 'info');
-            });
-
-            cardEventSource.addEventListener('card-update', function(event) {
-                const data = JSON.parse(event.data);
-                cardsData = data.cards;
-                displayCards(cardsData);
-                document.getElementById('cardUpdateTime').textContent = data.timestamp;
-                showUpdateBadge();
-                logMessage(`${data.message} at ${data.timestamp}`, 'success');
-            });
-
-            cardEventSource.onerror = function(event) {
-                updateConnectionStatus(false);
-                logMessage('Card stream connection error', 'error');
-            };
-
-            // Application processing stream
-            applicationEventSource = new EventSource('/api/applications/stream');
-            
-            applicationEventSource.addEventListener('connection-established', function(event) {
-                const data = JSON.parse(event.data);
-                logMessage(data.message, 'info');
-            });
-
-            applicationEventSource.addEventListener('processing-update', function(event) {
-                const data = JSON.parse(event.data);
-                document.getElementById('activeApplications').textContent = data.activeApplications;
-                logMessage(`${data.message} (${data.activeApplications} active)`, 'info');
-            });
-
-            applicationEventSource.addEventListener('application-submitted', function(event) {
-                const data = JSON.parse(event.data);
-                logMessage(`New application from ${data.applicantName} submitted at ${data.timestamp}`, 'success');
-            });
-
-            applicationEventSource.onerror = function(event) {
-                logMessage('Application stream connection error', 'error');
-            };
+        // Initialize session
+        function initializeSession() {
+            currentSessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            sessionIdSpan.textContent = currentSessionId.substr(-8);
+            messageCount = 0;
+            updateMessageCount();
         }
 
-        // Display cards
-        function displayCards(cards) {
-            const container = document.getElementById('cardsContainer');
-            container.innerHTML = '';
-            
-            cards.forEach(card => {
-                const cardElement = document.createElement('div');
-                cardElement.className = 'col-md-4 mb-3';
-                cardElement.innerHTML = `
-                    <div class="card h-100 card-hover live-data">
-                        <div class="card-body">
-                            <h5 class="card-title text-primary">${card.cardName}</h5>
-                            <h6 class="card-subtitle mb-2 text-muted">${card.bankName}</h6>
-                            <p class="card-text">${card.bonus}</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="badge bg-warning text-dark">$${card.yearlyFee} Annual Fee</span>
-                                <span class="badge bg-danger">${card.interestRate}% APR</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(cardElement);
-            });
+        function updateMessageCount() {
+            messageCountSpan.textContent = messageCount;
         }
 
-        // Update connection status
-        function updateConnectionStatus(connected) {
-            const statusIndicator = document.getElementById('connectionStatus');
-            const statusText = document.getElementById('connectionText');
+        function addMessage(message, sender) {
+            // Remove welcome message if present
+            const welcomeMsg = chatWindow.querySelector('.welcome-message');
+            if (welcomeMsg) {
+                welcomeMsg.remove();
+            }
+
+            const bubble = document.createElement("div");
+            bubble.classList.add("chat-bubble");
             
-            if (connected) {
-                statusIndicator.className = 'status-indicator status-connected';
-                statusText.textContent = 'Connected';
-            } else {
-                statusIndicator.className = 'status-indicator status-disconnected';
-                statusText.textContent = 'Disconnected';
+            const messageDiv = document.createElement("div");
+            messageDiv.classList.add(sender === "user" ? "user-message" : "agent-message");
+            messageDiv.innerHTML = message.replace(/\n/g, '<br>');
+            
+            bubble.appendChild(messageDiv);
+            chatWindow.appendChild(bubble);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+            
+            messageCount++;
+            updateMessageCount();
+            
+            // After adding a message, fetch logs if iterative mode
+            if (getCurrentAgentMode() === "iterative") {
+                fetchAgentLog();
             }
         }
 
-        // Show update badge
-        function showUpdateBadge() {
-            const badge = document.getElementById('updateBadge');
-            badge.style.display = 'inline-block';
-            badge.className = 'badge bg-info ms-2 update-badge';
-            setTimeout(() => {
-                badge.style.display = 'none';
-            }, 3000);
-        }
-
-        // Log messages
-        function logMessage(message, type) {
-            const logContainer = document.getElementById('sseLog');
-            const timestamp = new Date().toLocaleTimeString();
-            const messageElement = document.createElement('div');
-            
-            let className = 'text-muted';
-            let icon = 'fas fa-info-circle';
-            
-            switch(type) {
-                case 'success':
-                    className = 'text-success';
-                    icon = 'fas fa-check-circle';
-                    break;
-                case 'error':
-                    className = 'text-danger';
-                    icon = 'fas fa-exclamation-circle';
-                    break;
-                case 'info':
-                    className = 'text-info';
-                    icon = 'fas fa-info-circle';
-                    break;
-            }
-            
-            messageElement.innerHTML = `
-                <div class="${className} mb-1">
-                    <i class="${icon} me-2"></i>
-                    <span class="fw-bold">[${timestamp}]</span> ${message}
+        function showTypingIndicator() {
+            const typingDiv = document.createElement("div");
+            typingDiv.classList.add("typing-indicator");
+            typingDiv.id = "typing-indicator";
+            typingDiv.innerHTML = `
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
                 </div>
             `;
-            
-            logContainer.appendChild(messageElement);
-            logContainer.scrollTop = logContainer.scrollHeight;
+            chatWindow.appendChild(typingDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
         }
 
-        // Handle application form submission
-        document.getElementById('applicationForm').addEventListener('submit', async function(event) {
-            event.preventDefault();
-            
-            const formData = {
-                name: document.getElementById('firstName').value,
-                surname: document.getElementById('lastName').value,
-                salary: parseFloat(document.getElementById('salary').value),
-                birthday: document.getElementById('birthday').value
-            };
-            
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById("typing-indicator");
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        async function fetchApplications() {
             try {
-                const response = await fetch('/api/applications', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
+                const response = await fetch("/api/agent/applications");
+                const applications = await response.json();
+                
+                let tableHtml = `
+                    <table class="table table-sm table-hover" style="font-size: 0.8rem;">
+                        <thead>
+                            <tr>
+                                <th>App ID</th>
+                                <th>Customer</th>
+                                <th>Card</th>
+                                <th>Status</th>
+                                <th>Birthday</th>
+                                <th>Submitted</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                applications.forEach(app => {
+                    const statusClass = getStatusClass(app.status);
+                    tableHtml += `
+                        <tr>
+                            <td>${app.applicationId}</td>
+                            <td>${app.customerName}</td>
+                            <td>${app.cardName}</td>
+                            <td><span class="badge ${statusClass}">${app.status}</span></td>
+                            <td>${app.birthday || 'N/A'}</td>
+                            <td>${new Date(app.submissionDate).toLocaleDateString()}</td>
+                        </tr>
+                    `;
                 });
                 
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert('Application submitted successfully!');
-                    document.getElementById('applicationForm').reset();
-                    logMessage(`Your application has been submitted: ${result.message}`, 'success');
-                } else {
-                    alert(`Application failed: ${result.message}`);
-                    logMessage(`Application failed: ${result.message}`, 'error');
-                }
+                tableHtml += `</tbody></table>`;
+                applicationsContainer.innerHTML = tableHtml;
+
             } catch (error) {
-                alert('Error submitting application');
-                logMessage(`Error submitting application: ${error.message}`, 'error');
+                console.error("Failed to fetch applications:", error);
+                applicationsContainer.innerHTML = '<p class="text-danger small">Could not load applications.</p>';
             }
-        });
+        }
 
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeSSE();
-        });
+        function getStatusClass(status) {
+            switch(status) {
+                case 'APPROVED': return 'bg-success';
+                case 'PENDING': return 'bg-warning text-dark';
+                case 'UNDER_REVIEW': return 'bg-info text-dark';
+                case 'REJECTED': return 'bg-danger';
+                case 'CANCELLED': return 'bg-secondary';
+                default: return 'bg-light text-dark';
+            }
+        }
 
-        // Clean up connections when page unloads
-        window.addEventListener('beforeunload', function() {
-            if (cardEventSource) {
-                cardEventSource.close();
+        async function fetchDemoScenarios() {
+            try {
+                const response = await fetch("/api/agent/demo-scenarios");
+                const scenarios = await response.json();
+                demoScenariosPanel.innerHTML = '';
+                scenarios.forEach(scenario => {
+                    const scenarioDiv = document.createElement('div');
+                    scenarioDiv.classList.add('demo-scenario');
+                    scenarioDiv.innerHTML = `
+                        <strong>${scenario.title}</strong><br>
+                        <small>"${scenario.message}"</small><br>
+                        <small class="text-muted">${scenario.description}</small>
+                    `;
+                    scenarioDiv.addEventListener('click', () => {
+                        chatInput.value = scenario.message;
+                        sendMessage();
+                    });
+                    demoScenariosPanel.appendChild(scenarioDiv);
+                });
+            } catch (error) {
+                console.error("Failed to fetch demo scenarios:", error);
             }
-            if (applicationEventSource) {
-                applicationEventSource.close();
+        }
+
+        async function fetchServers() {
+            try {
+                const response = await fetch("/api/agent/servers");
+                const servers = await response.json();
+                serversPanel.innerHTML = '';
+                servers.forEach(server => {
+                    const serverDiv = document.createElement('div');
+                    serverDiv.classList.add('server-status');
+                    serverDiv.innerHTML = `
+                        <div class="status-indicator ${server.healthStatus === 'HEALTHY' ? 'status-healthy' : 'status-unhealthy'}"></div>
+                        <div>
+                            <strong>${server.name}</strong><br>
+                            <small>${server.description}</small>
+                        </div>
+                    `;
+                    serversPanel.appendChild(serverDiv);
+                });
+            } catch (error) {
+                console.error("Failed to fetch servers:", error);
+                serversPanel.innerHTML = '<p class="text-danger small">Could not load servers.</p>';
+            }
+        }
+
+        async function fetchTools() {
+            try {
+                const response = await fetch("/api/agent/tools");
+                const tools = await response.json();
+                toolsPanel.innerHTML = '';
+                tools.forEach(tool => {
+                    const toolDiv = document.createElement('div');
+                    toolDiv.classList.add('tool-item');
+                    toolDiv.innerHTML = `<strong>${tool.name}</strong><br><small>${tool.description}</small>`;
+                    toolsPanel.appendChild(toolDiv);
+                });
+            } catch (error) {
+                console.error("Failed to fetch tools:", error);
+                toolsPanel.innerHTML = '<p class="text-danger small">Could not load tools.</p>';
+            }
+        }
+
+        function getCurrentAgentMode() {
+            // Always iterative now
+            return "iterative";
+        }
+
+        function updateAgentModeDisplay() {
+            agentModeSpan.textContent = "Iterative";
+        }
+
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (message) {
+                addMessage(message, "user");
+                chatInput.value = "";
+                showTypingIndicator();
+
+                const agentMode = getCurrentAgentMode();
+                const endpoint = agentMode === "iterative" ? "/api/iterative-agent/chat" : "/api/agent/chat";
+
+                try {
+                    const response = await fetch(endpoint, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ 
+                            message: message,
+                            sessionId: currentSessionId
+                        }),
+                    });
+                    const data = await response.json();
+                    hideTypingIndicator();
+                    
+                    if (data.error) {
+                        addMessage("❌ " + data.error, "agent");
+                    } else {
+                        addMessage(data.finalResponse, "agent");
+                    }
+                    fetchAgentLog();
+                } catch (error) {
+                    hideTypingIndicator();
+                    addMessage("❌ Sorry, I encountered a technical issue. Please try again.", "agent");
+                    console.error("Error sending message:", error);
+                    fetchAgentLog();
+                }
+            }
+        }
+
+        function clearChat() {
+            chatWindow.innerHTML = `
+                <div class="welcome-message">
+                    <i class="fas fa-robot fa-2x mb-2"></i>
+                    <p>Chat cleared! How can I help you today?</p>
+                </div>
+            `;
+            messageCount = 0;
+            updateMessageCount();
+        }
+
+        function newSession() {
+            initializeSession();
+            clearChat();
+            fetchAgentLog();
+        }
+
+        async function fetchAgentLog() {
+            if (!currentSessionId) return;
+            try {
+                const response = await fetch(`/api/iterative-agent/logs/${encodeURIComponent(currentSessionId)}`);
+                const log = await response.text();
+                const logPanel = document.getElementById("agent-log-panel");
+                logPanel.innerHTML = log || "No log for this session yet.";
+                logPanel.scrollTop = logPanel.scrollHeight;
+            } catch (error) {
+                document.getElementById("agent-log-panel").textContent = "Could not load agent log.";
+            }
+        }
+        document.getElementById("refresh-agent-log").addEventListener("click", fetchAgentLog);
+
+        // Event listeners
+        sendButton.addEventListener("click", sendMessage);
+        chatInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                sendMessage();
             }
         });
-    </script>
+        clearChatBtn.addEventListener("click", clearChat);
+        newSessionBtn.addEventListener("click", newSession);
+        // iterativeModeRadio.addEventListener("change", updateAgentModeDisplay);
+        // standardModeRadio.addEventListener("change", updateAgentModeDisplay);
+        updateAgentModeDisplay(); // Set initial display
+
+        // Initialize
+        initializeSession();
+        fetchDemoScenarios();
+        fetchServers();
+        fetchTools();
+        fetchAgentLog();
+        fetchApplications();
+    });
+</script>
+
 </body>
 </html> 

@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import fin.kk.mcp.model.ApplicationStatus;
+import fin.kk.mcp.service.McpCardService;
 
 /**
  * MCP Server Test Controller
@@ -17,6 +19,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/mcp-test")
 public class McpTestController {
+
+    private final McpCardService mcpCardService;
+
+    public McpTestController(McpCardService mcpCardService) {
+        this.mcpCardService = mcpCardService;
+    }
 
     /**
      * Test endpoint to verify MCP server status
@@ -59,5 +67,21 @@ public class McpTestController {
         info.put("usage", "Connect your MCP client (like Claude Desktop) to this server using the /sse endpoint");
         
         return ResponseEntity.ok(info);
+    }
+
+    @GetMapping("/demo-data/test")
+    public ResponseEntity<Map<String, Object>> testDemoData() {
+        Map<String, Object> response = new HashMap<>();
+        
+        // Test demo data service
+        List<ApplicationStatus> janeApplications = mcpCardService.getCustomerApplications("Jane Smith");
+        List<ApplicationStatus> needingAttention = mcpCardService.getApplicationsNeedingAttention();
+        
+        response.put("janeApplications", janeApplications);
+        response.put("applicationsNeedingAttention", needingAttention);
+        response.put("totalApplications", needingAttention.size());
+        response.put("status", "Demo data test successful");
+        
+        return ResponseEntity.ok(response);
     }
 } 

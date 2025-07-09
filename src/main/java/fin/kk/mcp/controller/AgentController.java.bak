@@ -1,0 +1,93 @@
+package fin.kk.mcp.controller;
+
+import fin.kk.mcp.agent.dto.AgentResponse;
+import fin.kk.mcp.agent.service.AgentEngine;
+import fin.kk.mcp.client.McpClient;
+import fin.kk.mcp.client.dto.McpServerConfig;
+import fin.kk.mcp.client.dto.McpServerInfo;
+import fin.kk.mcp.client.dto.McpToolDefinition;
+import fin.kk.mcp.controller.dto.ChatRequest;
+import fin.kk.mcp.controller.dto.ServerRegistrationRequest;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/agent")
+@ConditionalOnProperty(name = "spring.ai.openai.api-key")
+public class AgentController {
+
+    private final AgentEngine agentEngine;
+    private final McpClient mcpClient;
+    
+    public AgentController(AgentEngine agentEngine, McpClient mcpClient) {
+        this.agentEngine = agentEngine;
+        this.mcpClient = mcpClient;
+    }
+
+    @Operation(summary = "Send a message to the agent")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successful operation"),
+            @ApiResponse(responseCode = "400", description = "Invalid input")
+    })
+    @PostMapping("/chat")
+    public Mono<ResponseEntity<AgentResponse>> chat(@Valid @RequestBody ChatRequest chatRequest) {
+        return agentEngine.processUserMessage(chatRequest.getMessage())
+                .map(ResponseEntity::ok);
+    }
+
+    @Operation(summary = "Get all available tools from all connected servers")
+    @GetMapping("/tools")
+    public ResponseEntity<List<McpToolDefinition>> getAvailableTools() {
+        return ResponseEntity.ok(mcpClient.getAllAvailableTools());
+    }
+
+    @Operation(summary = "Get available tools from a specific server")
+    @GetMapping("/servers/{serverId}/tools")
+    public Mono<ResponseEntity<List<McpToolDefinition>>> getToolsFromServer(@PathVariable String serverId) {
+        return mcpClient.getAvailableTools(serverId).map(ResponseEntity::ok);
+    }
+
+    @Operation(summary = "Get all connected MCP servers with health status")
+    @GetMapping("/servers")
+    public ResponseEntity<List<McpServerInfo>> getConnectedServers() {
+        return ResponseEntity.ok(mcpClient.listConnectedServers());
+    }
+
+    @Operation(summary = "Add a new remote MCP server")
+    @PostMapping("/servers")
+    public ResponseEntity<String> addServer(@Valid @RequestBody ServerRegistrationRequest request) {
+        try {
+            McpServerConfig config = new McpServerConfig(request.getId(), request.getName(), request.getUrl(), request.getProtocol());
+            mcpClient.connectToServer(config);
+            return ResponseEntity.ok("Server connection initiated: " + request.getId());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed to connect to server: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Remove an MCP server")
+    @DeleteMapping("/servers/{serverId}")
+    public ResponseEntity<String> removeServer(@PathVariable String serverId) {
+        try {
+            mcpClient.disconnectFromServer(serverId);
+            return ResponseEntity.ok("Server disconnected: " + serverId);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed to disconnect server: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Check health of a specific MCP server")
+    @PostMapping("/servers/{serverId}/health")
+    public Mono<ResponseEntity<Boolean>> checkServerHealth(@PathVariable String serverId) {
+        return mcpClient.checkServerHealth(serverId)
+                .map(ResponseEntity::ok);
+    }
+} 

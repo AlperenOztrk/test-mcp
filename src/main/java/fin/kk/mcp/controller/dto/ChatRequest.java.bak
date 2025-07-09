@@ -1,0 +1,29 @@
+package fin.kk.mcp.controller.dto;
+
+import jakarta.validation.constraints.NotEmpty;
+import lombok.Data;
+
+import java.util.Map;
+
+@Data
+public class ChatRequest {
+    @NotEmpty
+    private String message;
+    private Map<String, Object> metadata;
+    
+    public String getMessage() {
+        return message;
+    }
+    
+    public void setMessage(String message) {
+        this.message = message;
+    }
+    
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+    
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+    }
+} 

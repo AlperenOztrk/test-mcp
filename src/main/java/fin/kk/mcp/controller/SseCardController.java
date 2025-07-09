@@ -143,32 +143,17 @@ public class SseCardController {
     /**
      * REST API endpoint to submit credit card application
      */
-    @PostMapping("/api/applications")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> submitApplication(@RequestBody ApplicationRequest request) {
-        Map<String, Object> result = mcpCardService.submitApplication(
-                request.getName(),
-                request.getSurname(),
-                request.getSalary(),
-                request.getBirthday()
+    @PostMapping("/submit")
+    public ResponseEntity<Map<String, Object>> submit(@RequestBody ApplicationRequest applicationRequest) {
+        Map<String, Object> response = mcpCardService.submitApplication(
+                applicationRequest.getName(),
+                applicationRequest.getSurname(),
+                applicationRequest.getSalary(),
+                applicationRequest.getBirthday(),
+                applicationRequest.getCardId(),
+                applicationRequest.getCardName()
         );
-
-        // Notify all application stream listeners
-        applicationEmitters.forEach(emitter -> {
-            try {
-                emitter.send(SseEmitter.event()
-                        .name("application-submitted")
-                        .data(Map.of(
-                            "timestamp", LocalTime.now().toString(),
-                            "application", result,
-                            "applicantName", request.getName() + " " + request.getSurname()
-                        )));
-            } catch (IOException e) {
-                applicationEmitters.remove(emitter);
-            }
-        });
-
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(response);
     }
 
     /**

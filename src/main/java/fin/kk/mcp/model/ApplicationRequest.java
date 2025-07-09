@@ -12,6 +12,8 @@ public class ApplicationRequest {
     
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate birthday;
+    private Long cardId;
+    private String cardName;
 
     // Default constructor
     public ApplicationRequest() {}
@@ -55,6 +57,22 @@ public class ApplicationRequest {
 
     public void setBirthday(LocalDate birthday) {
         this.birthday = birthday;
+    }
+
+    public Long getCardId() {
+        return cardId;
+    }
+
+    public void setCardId(Long cardId) {
+        this.cardId = cardId;
+    }
+
+    public String getCardName() {
+        return cardName;
+    }
+
+    public void setCardName(String cardName) {
+        this.cardName = cardName;
     }
 
     @Override
